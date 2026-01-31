@@ -6,12 +6,20 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CalendarIcon, MapPinIcon, ArrowLeft, Users } from "lucide-react";
 import { useGetEventByIdQuery } from "../api/eventSlice";
+import { AuthPromptModal } from "@/components/AuthPromptModal";
+import { useAppSelector } from "@/app/hooks";
+import { useReserveSeatsMutation } from "../api/bookingSlice";
+import { toast } from "react-toastify";
 
 function EventDetail() {
   const { id } = useParams<{ id: string }>();
   const { data, isError, isFetching } = useGetEventByIdQuery(id);
   const navigate = useNavigate();
   const [selectedSeats, setSelectedSeats] = useState<Seat[]>([]);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const { accessToken } = useAppSelector((state) => state.auth);
+  const isAuthenticated = Boolean(accessToken);
+  const [reserveSeats] = useReserveSeatsMutation();
 
   const event = data?.data;
 
@@ -49,6 +57,45 @@ function EventDetail() {
       }
       return [...prev, seat];
     });
+  };
+
+  const handleProceedToCheckout = async () => {
+    try {
+      const loadingOverlay = document.createElement("div");
+      loadingOverlay.id = "reservation-loading";
+      loadingOverlay.className =
+        "fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center";
+      loadingOverlay.innerHTML = `
+        <div class="bg-background p-8 rounded-lg shadow-xl text-center space-y-4">
+          <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mx-auto"></div>
+          <div class="space-y-2">
+        <p class="text-xl font-semibold">Checking Availability...</p>
+        <p class="text-sm text-muted-foreground">Please wait while we prepare your reservation</p>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(loadingOverlay);
+
+      const seatIds = selectedSeats.map((seat) => seat.seat_id);
+      await reserveSeats({
+        eventId: id!,
+        seatIds: seatIds,
+      }).unwrap();
+
+      navigate(`/checkout`, {
+        state: {
+          eventId: id,
+          seatIds: seatIds,
+          total: totalPrice,
+        },
+      });
+    } catch (error) {
+      console.error("Failed to reserve seats:", error);
+      const err = error as APIError;
+      toast.error(err.data.message, { theme: "colored" });
+    } finally {
+      document.getElementById("reservation-loading")?.remove();
+    }
   };
 
   const totalPrice = selectedSeats.reduce((sum, seat) => sum + seat.price, 0);
@@ -225,6 +272,13 @@ function EventDetail() {
                     className="w-full"
                     size="lg"
                     disabled={selectedSeats.length === 0}
+                    onClick={() => {
+                      if (!isAuthenticated) {
+                        setShowAuthModal(true);
+                      } else {
+                        handleProceedToCheckout();
+                      }
+                    }}
                   >
                     Proceed to Checkout
                   </Button>
@@ -238,6 +292,9 @@ function EventDetail() {
           </div>
         </div>
       </div>
+
+      {/* Auth Prompt Modal */}
+      <AuthPromptModal open={showAuthModal} onOpenChange={setShowAuthModal} />
     </div>
   );
 }
