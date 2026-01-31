@@ -2,12 +2,15 @@ import type { Event } from "@/types/event";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CalendarIcon, MapPinIcon } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface EventCardProps {
   event: Event;
 }
 
 export function EventCard({ event }: EventCardProps) {
+  const navigate = useNavigate();
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return new Intl.DateTimeFormat("en-US", {
@@ -18,6 +21,10 @@ export function EventCard({ event }: EventCardProps) {
       hour: "2-digit",
       minute: "2-digit",
     }).format(date);
+  };
+
+  const handleBookTickets = () => {
+    navigate(`/event/${event.id}`);
   };
 
   return (
@@ -46,7 +53,7 @@ export function EventCard({ event }: EventCardProps) {
         </div>
       </CardContent>
       <CardFooter>
-        <Button className="w-full">Book Tickets</Button>
+        <Button className="w-full" onClick={handleBookTickets}>Book Tickets</Button>
       </CardFooter>
     </Card>
   );

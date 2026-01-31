@@ -9,22 +9,18 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LogOut, User, Ticket } from "lucide-react";
+import { useAppSelector } from "../app/hooks";
+import { useNavigate } from "react-router-dom";
 
 interface NavbarProps {
-  isLoggedIn?: boolean;
   userName?: string;
-  userEmail?: string;
-  onLogin?: () => void;
-  onLogout?: () => void;
 }
 
-export function Navbar({
-  isLoggedIn = false,
-  userName = "John Doe",
-  userEmail = "john@example.com",
-  onLogin,
-  onLogout,
-}: NavbarProps) {
+export function Navbar({ userName = "App User" }: NavbarProps) {
+  const { email, accessToken } = useAppSelector((state) => state.auth);
+  const isLoggedIn = Boolean(accessToken);
+  const navigate = useNavigate();
+
   const getInitials = (name: string) => {
     return name
       .split(" ")
@@ -49,10 +45,10 @@ export function Navbar({
         <div className="flex items-center gap-4">
           {!isLoggedIn ? (
             <div className="flex items-center gap-2">
-              <Button variant="ghost" onClick={onLogin}>
+              <Button variant="ghost" onClick={() => navigate("/login")}>
                 Login
               </Button>
-              <Button onClick={onLogin}>Register</Button>
+              <Button onClick={() => navigate("/register")}>Register</Button>
             </div>
           ) : (
             <DropdownMenu>
@@ -76,7 +72,7 @@ export function Navbar({
                       {userName}
                     </p>
                     <p className="text-xs leading-none text-muted-foreground">
-                      {userEmail}
+                      {email}
                     </p>
                   </div>
                 </DropdownMenuLabel>
@@ -90,7 +86,7 @@ export function Navbar({
                   <span>My Tickets</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={onLogout}>
+                <DropdownMenuItem onClick={() => navigate("/")}>
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Logout</span>
                 </DropdownMenuItem>
