@@ -11,6 +11,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LogOut, User, Ticket } from "lucide-react";
 import { useAppSelector } from "../app/hooks";
 import { useNavigate } from "react-router-dom";
+import { useLogoutUserMutation } from "@/features/api/authSlice";
+import { toast } from "react-toastify";
+import { useAppDispatch } from "@/app/hooks";
+import { setLogoutData } from "@/features/authentication/reducer/authSlice";
 
 interface NavbarProps {
   userName?: string;
@@ -20,6 +24,20 @@ export function Navbar({ userName = "App User" }: NavbarProps) {
   const { email, accessToken } = useAppSelector((state) => state.auth);
   const isLoggedIn = Boolean(accessToken);
   const navigate = useNavigate();
+  const [logoutUser] = useLogoutUserMutation();
+  const dispatch = useAppDispatch();
+
+  const handleLogout = async () => {
+    try {
+      await logoutUser(undefined).unwrap();
+      dispatch(setLogoutData());
+      navigate("/");
+    } catch (error) {
+      console.error("Logout failed:", error);
+      const err = error as APIError;
+      toast.error(err.data.message, { theme: "colored" });
+    }
+  };
 
   const getInitials = (name: string) => {
     return name
@@ -86,7 +104,7 @@ export function Navbar({ userName = "App User" }: NavbarProps) {
                   <span>My Tickets</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => navigate("/")}>
+                <DropdownMenuItem onClick={handleLogout}>
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Logout</span>
                 </DropdownMenuItem>
